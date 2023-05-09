@@ -44,12 +44,14 @@ node_t *path_find(node_t *n, key_t key) {
     // 새로운 노드의 키값이 현재 노드의 키값보다 크면? 오른쪽으로 들어감.
     // 해당 노드의 오른쪽 노드가 비어있다면 현재 노드의 주소값 반환
     // 비어있지 않다면 오른쪽으로 들어감.
+
     return n -> right == NULL ? n : path_find(n -> right, key);
   }else {
     // 새로운 노드의 키값이 현재 노드의 키값보다 작으면? 왼쪽으로 들어감.
     // 해당 노드의 왼쪽 노드가 비어있다면 현재 노드의 주소값 반환
     // 비어있지 않다면 왼쪽으로 들어감.
-    return n -> left == NULL ? n : path_find(n -> left, key); 
+
+    return n -> left == NULL ? n : path_find(n -> left, key);
   }
 }
 
@@ -223,11 +225,27 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
   return new_node;
 }
 
-node_t *rbtree_find(const rbtree *t, const key_t key) {
-  // TODO: implement find
-  
+node_t *node_find(node_t *n, key_t key) {
+  // 깊이 판단 left, rigth NULL
 
-  return t->root;
+  int flag = n -> key > key ? 1 : 0;
+
+  if(n -> key == key) {
+    return n;
+  }else {
+    if (flag) {
+      return n -> right == NULL ? NULL : node_find(n -> right, key);
+    }else {
+      return n -> left == NULL ? NULL : node_find(n -> left, key);
+    }
+  }
+}
+
+node_t *rbtree_find(const rbtree *t, const key_t key) {
+  // key를 가지고 재귀적으로 찾아나감
+  node_t *n = node_find(t->root, key);
+
+  return n;
 }
 
 // node_t 형의 주소값을 반환한다.
@@ -252,10 +270,11 @@ int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   return 0;
 }
 
-int main(){
-  rbtree *tree;
-  tree = new_rbtree();
-  node_t *p;
+// int main(){
+//   rbtree *t = new_rbtree();
+//   node_t *p = rbtree_insert(t, 20);
 
-  return 0;
-}
+//   node_t *q = rbtree_find(t, 20);
+
+//   return 0;
+// }
