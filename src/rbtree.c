@@ -11,15 +11,12 @@ rbtree *new_rbtree(void) {
   // p는 rbtree형의 주소값을 저장하는 변수.
   rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
   // nilNode는 node_t형의 주소값을 저장하는 변수.
-  node_t *nil_node = (node_t *)calloc(1, sizeof(node_t));
-
-  // nilNode의 색깔을 정의한다.
-  nil_node -> color = RBTREE_BLACK;
+  // node_t *nil_node = (node_t *)calloc(1, sizeof(node_t));
 
   // 트리 p의 nil에 nilNode 할당. 센티넬 노드.
-  p -> nil = nil_node;
+  p -> nil = NULL;
   // 트리 p의 root에 nilNode 할당. 센티넬 노드.
-  p -> root = nil_node;
+  p -> root = NULL;
 
   return p;
 }
@@ -68,7 +65,7 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
   new_node -> color = RBTREE_RED;
   new_node -> key = key;
 
-  if (t -> root == t -> nil) {
+  if(t -> root == NULL) {
     // 루트 노드가 nil 노드일 경우 
     new_node -> color = RBTREE_BLACK;
     t -> root = new_node;
@@ -88,35 +85,35 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
     new_node -> parent = final_node;
 
     // 방금 삽입된 노드의 부모 노드가 red일 때 -> red는 중복으로 들어올 수 없다는 규칙 위반.
-    if (final_node -> color == RBTREE_RED) {
+    if(final_node -> color == RBTREE_RED) {
       node_t *my_parent = new_node -> parent;
       node_t *my_grand_parent = my_parent -> parent;
       node_t *my_grand_grand_parent = my_grand_parent -> parent;
-      node_t *myUncle;
+      node_t *my_uncle;
 
       // 삼촌이 레드일 경우 1 , 블랙이거나 없을경우 0
       int is_alive = 0;
 
       if(new_node -> key > my_grand_parent -> key) {
-        myUncle = my_grand_parent -> left ? my_grand_parent -> left : NULL;
-        is_alive = myUncle ? myUncle -> color == RBTREE_RED ? 1 : 0 : 0;
-      } else {
-        myUncle = my_grand_parent -> right ? my_grand_parent -> right : NULL;
-        is_alive = myUncle ? myUncle -> color == RBTREE_RED ? 1 : 0 : 0;
+        my_uncle = my_grand_parent -> left ? my_grand_parent -> left : NULL;
+        is_alive = my_uncle ? my_uncle -> color == RBTREE_RED ? 1 : 0 : 0;
+      }else {
+        my_uncle = my_grand_parent -> right ? my_grand_parent -> right : NULL;
+        is_alive = my_uncle ? my_uncle -> color == RBTREE_RED ? 1 : 0 : 0;
       }
 
       if(is_alive) {
         // 삼촌이 레드일 경우 - Recoloring
         // 삽입된 노드의 부모와 삼촌 노드를 검은색으로, 부모의 부모 노드를 빨간색으로.
         my_parent -> color = RBTREE_BLACK;
-        myUncle -> color = RBTREE_BLACK;
+        my_uncle -> color = RBTREE_BLACK;
         my_grand_parent -> color = RBTREE_RED;
 
         if (t -> root -> color == 0) {
           t -> root -> color = RBTREE_BLACK;
         }
 
-      } else {
+      }else {
         // 삼촌이 블랙이거나 안계심 - Restructuring
         // 삽입된 노드, 부모 노드, 부모의 부모 노드를 오름차순으로 정렬.
         // new_node, my_parent, my_grand_parent
@@ -156,7 +153,7 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
           }
 
           if(i == 1) {
-            if (arr[i] == new_node -> key) {
+            if(arr[i] == new_node -> key) {
               mid = new_node;
             }
 
@@ -170,7 +167,7 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
           }
 
           if(i == 2) {
-            if (arr[i] == new_node -> key) {
+            if(arr[i] == new_node -> key) {
               max = new_node;
             }
 
@@ -184,34 +181,32 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
           }
         }
 
-
         // mid를 부모 노드로 만든다. 그리고 나머지를 자식 노드로 만든다.
         mid -> parent = NULL;
-        mid -> left=NULL;
-        mid -> right=NULL;
+        mid -> left = NULL;
+        mid -> right = NULL;
         
-        max -> parent=NULL;
-        max -> left=NULL;
-        max -> right=NULL;
+        max -> parent = NULL;
+        max -> left = NULL;
+        max -> right = NULL;
 
-        min -> parent =NULL;
-        min -> left=NULL;
-        min -> right=NULL;
+        min -> parent = NULL;
+        min -> left = NULL;
+        min -> right = NULL;
 
         mid -> left = min;
-        mid -> right=max;
+        mid -> right = max;
         min -> parent = mid;
-        max -> parent =mid;
-
+        max -> parent = mid;
 
         // 부모 노드가 된 노드를 검은색 그리고 나머지 빨간색.
         mid -> color = RBTREE_BLACK;
         min -> color = RBTREE_RED;
         max -> color = RBTREE_RED;
-        // 증조 할아버지 바인딩.
 
+        // 증조 할아버지 바인딩.
         if(my_grand_grand_parent) {
-          if(my_grand_grand_parent -> key > mid -> key) {
+          if(my_grand_grand_parent -> key <= mid -> key) {
             my_grand_grand_parent -> right = NULL;
             my_grand_grand_parent -> right = mid;
           }else {
@@ -225,11 +220,13 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
     }
   };
 
-  return t -> root;
+  return new_node;
 }
 
 node_t *rbtree_find(const rbtree *t, const key_t key) {
   // TODO: implement find
+  
+
   return t->root;
 }
 
@@ -255,19 +252,10 @@ int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   return 0;
 }
 
-// int main(){
-//   rbtree *tree;
-//   tree = new_rbtree();
+int main(){
+  rbtree *tree;
+  tree = new_rbtree();
+  node_t *p;
 
-//   rbtree_insert(tree, 10);
-//   printf("%d", tree->root->color);
-
-//   // rbtree_insert(tree, 4);
-//   // rbtree_insert(tree, 8);
-
-//   printf("%d", tree->root->color);
-//   // printf("%d", tree->root->left->color);
-//   // printf("%d", tree->root->right->color);
-
-//   return 0;
-// }
+  return 0;
+}
