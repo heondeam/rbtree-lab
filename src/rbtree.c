@@ -11,14 +11,36 @@ rbtree *new_rbtree(void) {
   // p는 rbtree형의 주소값을 저장하는 변수.
   rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
   // nilNode는 node_t형의 주소값을 저장하는 변수.
-  // node_t *nil_node = (node_t *)calloc(1, sizeof(node_t));
+  node_t *nil_node = (node_t *)calloc(1, sizeof(node_t));
+  nil_node -> color = RBTREE_BLACK;
 
   // 트리 p의 nil에 nilNode 할당. 센티넬 노드.
-  p -> nil = NULL;
+  p -> nil = nil_node;
   // 트리 p의 root에 nilNode 할당. 센티넬 노드.
-  p -> root = NULL;
+  p -> root = nil_node;
 
   return p;
+}
+
+/**
+ * RB tree를 후위 순회함
+ * @param nil nil 노드 주소 
+ * @param s 순회를 시작할 노드
+*/
+void rbtree_delete_helper(node_t *nil, node_t *s) {
+  if(s == nil) {
+    return;
+  }
+
+  if(s -> left != nil) {
+    rbtree_delete_helper(nil, s->left);
+  }
+
+  if(s -> right != nil) {
+    rbtree_delete_helper(nil, s->right);
+  }
+
+  printf("%d", s -> key);
 }
 
 /**
@@ -27,32 +49,120 @@ rbtree *new_rbtree(void) {
  * @return 아무것도 반환하지 않는다.
 */
 void delete_rbtree(rbtree *t) {
-  // TODO: reclaim the tree nodes's memory
+  // 트리를 후위 순회하면서 메모리를 반환한다.
+  rbtree_delete_helper(t -> nil, t->root);
+
   free(t);
 }
 
+
 /**
- * 이진 탐색 트리의 삽입 규칙을 지키면서 insert
- * @param n *n 해당 노드의 주소값
- * @param key 새로운 노드의 key
- * @return
+ * 
+ * 
 */
-node_t *path_find(node_t *n, key_t key) {
-  int flag = (key <= n -> key) ? 0 : 1;
+void left_rotate(rbtree *tree, node_t *x) {
+  node_t *y;
 
-  if (flag) {
-    // 새로운 노드의 키값이 현재 노드의 키값보다 크면? 오른쪽으로 들어감.
-    // 해당 노드의 오른쪽 노드가 비어있다면 현재 노드의 주소값 반환
-    // 비어있지 않다면 오른쪽으로 들어감.
+  y = x -> right;
+  x -> right = y -> left;
+  
+  if (y -> left != tree -> nil) 
+      y -> left -> parent = x;
+  
+  y -> parent = x -> parent;
+  
+  if (x -> parent == tree -> nil) 
+      tree -> root = y;
+  else if (x == x -> parent -> left)
+      x -> parent -> left = y;
+  else 
+      x -> parent -> right = y;
 
-    return n -> right == NULL ? n : path_find(n -> right, key);
-  }else {
-    // 새로운 노드의 키값이 현재 노드의 키값보다 작으면? 왼쪽으로 들어감.
-    // 해당 노드의 왼쪽 노드가 비어있다면 현재 노드의 주소값 반환
-    // 비어있지 않다면 왼쪽으로 들어감.
+  y -> left = x;
+  x -> parent = y;
+}
 
-    return n -> left == NULL ? n : path_find(n -> left, key);
+void right_rotate(rbtree *tree, node_t *x) {
+  node_t *y;
+
+  y = x -> left;
+  x -> left = y -> right;
+
+  if(y -> right != tree -> nil) {
+    y -> right -> parent = x;
   }
+
+  y -> parent = x -> parent;
+
+  if (x -> parent == tree -> nil){
+    tree -> root = y;
+  }else if(x == x -> parent -> left) {
+    x -> parent -> left = y;
+  }else {
+    x -> parent -> right = y;
+  }
+
+  y -> right = x;
+  x -> parent = y;
+}
+
+/**
+ * 
+ * 
+ * 
+*/
+void rbtree_insert_fixup(rbtree *t, node_t *z) {
+  node_t *y;
+  
+  while (z -> parent -> color == RBTREE_RED) {
+    // z의 부모가 조부모의 왼쪽 서브 트리일 경우
+    if (z -> parent == z -> parent -> parent -> left) {
+      y = z -> parent -> parent -> right;
+      
+      // CASE 1 : 노드 z의 삼촌 y가 적색인 경우
+      if (y -> color == RBTREE_RED) {
+        z -> parent -> color = RBTREE_BLACK;
+        y -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        z = z -> parent -> parent;
+      }
+      // CASE 2 : z의 삼촌 y가 흑색이며의 z가 오른쪽 자식인 경우
+      else {
+        if (z == z -> parent -> right) {
+          z = z -> parent;
+          left_rotate(t, z);
+        }
+        // CASE 3 : z의 삼촌 y가 흑색이며의 z가 오른쪽 자식인 경우
+        z -> parent -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        right_rotate(t, z -> parent -> parent);
+      }
+    }
+    // z의 부모가 조부모의 왼쪽 서브 트리일 경우
+    else {
+      y = z -> parent -> parent -> left;
+
+      // CASE 4 : 노드 z의 삼촌 y가 적색인 경우
+      if (y -> color == RBTREE_RED) {
+        z -> parent -> color = RBTREE_BLACK;
+        y -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        z = z -> parent -> parent;
+      }
+      // CASE 5 : z의 삼촌 y가 흑색이며의 z가 오른쪽 자식인 경우
+      else {
+        if (z == z -> parent -> left) {
+          z = z -> parent;
+          right_rotate(t, z);
+        }
+        // CASE 6 : z의 삼촌 y가 흑색이며의 z가 오른쪽 자식인 경우
+        z -> parent -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        left_rotate(t, z -> parent -> parent);
+      }
+    }
+  }
+  t -> root -> color = RBTREE_BLACK;
 }
 
 /**
@@ -63,218 +173,292 @@ node_t *path_find(node_t *n, key_t key) {
  *  
 */
 node_t *rbtree_insert(rbtree *t, const key_t key) {
-  node_t *new_node = (node_t *)calloc(1, sizeof(node_t));
-  new_node -> color = RBTREE_RED;
-  new_node -> key = key;
+  // TODO: implement insert
+  node_t *y = t -> nil;
+  node_t *x = t -> root;
+  node_t *z = (node_t *)calloc(1, sizeof(node_t));
+  
+  z -> key = key;
 
-  if(t -> root == NULL) {
-    // 루트 노드가 nil 노드일 경우 
-    new_node -> color = RBTREE_BLACK;
-    t -> root = new_node;
-  }else {
-    // 루트 노드가 nil 노드가 아닌 경우 즉, new_node가 첫 노드가 아닌 경우
-    // 이진탐색트리의 규칙을 지키면서 삽입.
-    // 트리의 키 값을 비교해 가면서 재귀적으로 final node를 찾는다.
-    node_t *final_node;
-
-    final_node = path_find(t -> root, key);
-
-    if (key <= final_node -> key) {
-      final_node -> left = new_node;
-    }else {
-      final_node -> right = new_node;
-    }
-    new_node -> parent = final_node;
-
-    // 방금 삽입된 노드의 부모 노드가 red일 때 -> red는 중복으로 들어올 수 없다는 규칙 위반.
-    if(final_node -> color == RBTREE_RED) {
-      node_t *my_parent = new_node -> parent;
-      node_t *my_grand_parent = my_parent -> parent;
-      node_t *my_grand_grand_parent = my_grand_parent -> parent;
-      node_t *my_uncle;
-
-      // 삼촌이 레드일 경우 1 , 블랙이거나 없을경우 0
-      int is_alive = 0;
-
-      if(new_node -> key > my_grand_parent -> key) {
-        my_uncle = my_grand_parent -> left ? my_grand_parent -> left : NULL;
-        is_alive = my_uncle ? my_uncle -> color == RBTREE_RED ? 1 : 0 : 0;
-      }else {
-        my_uncle = my_grand_parent -> right ? my_grand_parent -> right : NULL;
-        is_alive = my_uncle ? my_uncle -> color == RBTREE_RED ? 1 : 0 : 0;
-      }
-
-      if(is_alive) {
-        // 삼촌이 레드일 경우 - Recoloring
-        // 삽입된 노드의 부모와 삼촌 노드를 검은색으로, 부모의 부모 노드를 빨간색으로.
-        my_parent -> color = RBTREE_BLACK;
-        my_uncle -> color = RBTREE_BLACK;
-        my_grand_parent -> color = RBTREE_RED;
-
-        if (t -> root -> color == 0) {
-          t -> root -> color = RBTREE_BLACK;
-        }
-
-      }else {
-        // 삼촌이 블랙이거나 안계심 - Restructuring
-        // 삽입된 노드, 부모 노드, 부모의 부모 노드를 오름차순으로 정렬.
-        // new_node, my_parent, my_grand_parent
-        // 그 중 중간 값을 부모 노드로 만들고 나머지 노드들을 자식으로 변환한다.
-        // 부모 노드가 된 노드를 검은색으로 나머지를 빨간색으로.
-        int arr[3];
-
-        arr[0] = new_node -> key;
-        arr[1] = my_parent -> key;
-        arr[2] = my_grand_parent -> key;
-
-        for(int i=0; i < 3; i++) {
-            for(int j=0; j < 3 - i - 1; j++) {
-                if(arr[j] > arr[j+1]){    // swap
-                    int temp = arr[j];
-                    arr[j] = arr[j+1];
-                    arr[j+1] = temp;
-                }
-            }
-        }        
-
-        node_t *max, *mid, *min;
-
-        for(int i = 0; i < 3; i++) {
-          if(i == 0) {
-            if (arr[i] == new_node -> key) {
-              min = new_node;
-            }
-
-            if(arr[i] == my_parent -> key) {
-              min = my_parent;
-            }
-
-            if(arr[i] == my_grand_parent -> key) {
-              min = my_grand_parent;
-            }
-          }
-
-          if(i == 1) {
-            if(arr[i] == new_node -> key) {
-              mid = new_node;
-            }
-
-            if(arr[i] == my_parent -> key) {
-              mid = my_parent;
-            }
-
-            if(arr[i] == my_grand_parent -> key) {
-              mid = my_grand_parent;
-            }
-          }
-
-          if(i == 2) {
-            if(arr[i] == new_node -> key) {
-              max = new_node;
-            }
-
-            if(arr[i] == my_parent -> key) {
-              max = my_parent;
-            }
-
-            if(arr[i] == my_grand_parent -> key) {
-              max = my_grand_parent;
-            }
-          }
-        }
-
-        // mid를 부모 노드로 만든다. 그리고 나머지를 자식 노드로 만든다.
-        mid -> parent = NULL;
-        mid -> left = NULL;
-        mid -> right = NULL;
-        
-        max -> parent = NULL;
-        max -> left = NULL;
-        max -> right = NULL;
-
-        min -> parent = NULL;
-        min -> left = NULL;
-        min -> right = NULL;
-
-        mid -> left = min;
-        mid -> right = max;
-        min -> parent = mid;
-        max -> parent = mid;
-
-        // 부모 노드가 된 노드를 검은색 그리고 나머지 빨간색.
-        mid -> color = RBTREE_BLACK;
-        min -> color = RBTREE_RED;
-        max -> color = RBTREE_RED;
-
-        // 증조 할아버지 바인딩.
-        if(my_grand_grand_parent) {
-          if(my_grand_grand_parent -> key <= mid -> key) {
-            my_grand_grand_parent -> right = NULL;
-            my_grand_grand_parent -> right = mid;
-          }else {
-            my_grand_grand_parent -> left = NULL;
-            my_grand_grand_parent -> left = mid;
-          }
-        }else {
-          t -> root = mid;
-        }
-      }
-    }
-  };
-
-  return new_node;
-}
-
-node_t *node_find(node_t *n, key_t key) {
-  // 깊이 판단 left, rigth NULL
-
-  int flag = n -> key > key ? 1 : 0;
-
-  if(n -> key == key) {
-    return n;
-  }else {
-    if (flag) {
-      return n -> right == NULL ? NULL : node_find(n -> right, key);
-    }else {
-      return n -> left == NULL ? NULL : node_find(n -> left, key);
-    }
+  while (x != t -> nil) {
+    y = x;
+    if (z -> key < x -> key)
+      x = x -> left;
+    else
+      x = x -> right; 
   }
+
+  z -> parent = y;
+  
+  if (y == t -> nil) {
+    t -> root = z;
+  }
+  else if (z -> key < y -> key) {
+    y -> left = z;
+  }
+  else {
+    y -> right = z;
+  }
+
+  z -> left = t -> nil;
+  z -> right = t -> nil;
+  z -> color = RBTREE_RED;
+
+  rbtree_insert_fixup(t, z);
+
+  return z;
 }
 
+/**
+ * RB tree에서 노드를 찾음
+ * @param t 탐색할 트리의 주소값
+ * @param key 찾을 노드의 키값
+*/
 node_t *rbtree_find(const rbtree *t, const key_t key) {
   // key를 가지고 재귀적으로 찾아나감
-  node_t *n = node_find(t->root, key);
+  node_t *n = t -> root;
+
+  while (n != t -> nil) {
+    if(n->key < key) {
+      n = n-> right;
+    }else if(n -> key > key) {
+      n = n -> left;
+    }else {
+      return n;
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * RB tree에서 최솟값을 가진 노드를 찾는다.
+ * @param t 탐색할 트리의 주소값
+*/
+node_t *rbtree_min(const rbtree *t) {
+  // TODO: implement find
+  node_t *n = t -> root;
+  node_t *temp;
+
+  while (n -> left != t -> nil) {
+    temp = n -> left;
+
+    n = temp;
+  }
 
   return n;
 }
 
-// node_t 형의 주소값을 반환한다.
-node_t *rbtree_min(const rbtree *t) {
+/**
+ * RB tree에서 최솟값을 가진 노드를 찾는다.
+ * @param t 탐색할 트리의 주소값
+*/
+node_t *rbtree_sub_min(rbtree *t, node_t *p) {
   // TODO: implement find
-  return t->root;
+  node_t *n = p;
+  node_t *temp;
+
+  while (n -> left != t -> nil) {
+    temp = n -> left;
+
+    n = temp;
+  }
+
+  return n;
 }
 
-// node_t 형의 주소값을 반환한다.
+/**
+ * RB tree에서 최대값을 가진 노드를 찾는다.
+ * @param t 탐색할 트리의 주소값
+*/
 node_t *rbtree_max(const rbtree *t) {
   // TODO: implement find
-  return t->root;
+  node_t *n = t -> root;
+  node_t *temp;
+
+  while(n -> right != t -> nil) {
+    temp = n -> right;
+
+    n = temp;
+  }
+
+  return n;
 }
 
+/**
+ * RB tree를 중위 순회함
+ * @param s 현재 순회 중인 노드
+ * @param arr 배열 첫 원소의 주소값
+ * @param idx 현재 배열의 크기
+ * @param n 배열의 크기
+*/
+void rbtree_to_array_helper(node_t *nil, node_t *s, key_t *arr, size_t *idx, size_t n) {
+  if(*idx >= n) {
+    return;
+  }
+
+  if(s -> left != nil) {
+    rbtree_to_array_helper(nil, s->left, arr, idx, n);
+  }
+
+  arr[(*idx)++] = s -> key;
+
+  if(s -> right != nil) {
+    rbtree_to_array_helper(nil, s->right, arr, idx, n);
+  }
+}
+
+/**
+ * RB tree를 중위 순회한 결과를 배열로 저장함
+ * @param t 순회할 트리
+ * @param arr 배열 첫 원소의 주소값
+ * @param n 배열의 크기
+*/
+int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
+  size_t idx = 0;
+  rbtree_to_array_helper(t -> nil, t -> root, arr, &idx, n);
+  return idx;
+}
+
+/**
+ * 트리 내부 이동
+ * @param t 트리
+ * @param u 서브트리의 루트
+ * @param v 서브트리의 루트
+*/
+void trans_plant(rbtree *t, node_t *u, node_t *v) {
+  if (u -> parent == t -> nil) {
+    t -> root = v;
+  }
+  else if (u == u -> parent -> left) {
+    u -> parent -> left = v;
+  }
+  else {
+    u -> parent -> right = v;
+  }
+  
+  v -> parent = u -> parent;
+}
+
+/**
+ * 
+ * 
+*/
+void delete_fixup(rbtree *t, node_t *x) {
+  while (x != t -> root && x -> color == RBTREE_BLACK) {
+    if (x == x -> parent -> left){
+      node_t *w = x -> parent -> right;
+      
+      if(w -> color == RBTREE_RED) {
+        w -> color = RBTREE_BLACK;
+        x -> parent -> color = RBTREE_RED;
+        left_rotate(t, x -> parent);
+        w = x -> parent -> right;
+      }
+
+      if(w -> left -> color == RBTREE_BLACK && w -> right -> color == RBTREE_BLACK) {
+        w -> color = RBTREE_RED;
+        x = x -> parent;
+      }else { 
+        
+        if (w -> right -> color == RBTREE_BLACK) {
+          w -> left -> color = RBTREE_BLACK;
+          w -> color = RBTREE_RED;
+          right_rotate(t, w);
+          w = x -> parent -> right;
+        }
+
+        w -> color = x -> parent -> color;
+        x -> parent -> color = RBTREE_BLACK;
+        w -> right -> color = RBTREE_BLACK;
+        left_rotate(t, x -> parent);
+        x = t -> root;
+      }
+    }
+    else {
+      node_t *w = x -> parent -> left;
+
+      if (w -> color == RBTREE_RED) {
+        w -> color = RBTREE_BLACK;
+        x -> parent -> color = RBTREE_RED;
+        right_rotate(t, x -> parent);
+        w = x -> parent -> left;
+      }
+
+      if (w -> right -> color == RBTREE_BLACK && w -> left -> color == RBTREE_BLACK) {
+        w -> color = RBTREE_RED;
+        x = x -> parent;
+      }else {
+
+        if (w -> left -> color == RBTREE_BLACK) {
+          w -> right -> color = RBTREE_BLACK;
+          w -> color = RBTREE_RED;
+          left_rotate(t, w);
+          w = x -> parent -> left;
+        }
+
+        w -> color = x -> parent -> color;
+        x -> parent -> color = RBTREE_BLACK;
+        w -> left -> color = RBTREE_BLACK;
+        right_rotate(t, x -> parent);
+        x = t->root;
+      }
+    }
+  }
+
+  x ->color = RBTREE_BLACK;
+}
+
+/**
+ * RB tree에서 특정 노드를 삭제
+ * @param t 노드를 삭제할 트리
+ * @param z 삭제할 노드의 주소값
+*/
 int rbtree_erase(rbtree *t, node_t *p) {
   // TODO: implement erase
+  node_t *y;
+  node_t *x;
+  color_t org_color;
+
+  y = p;
+  org_color = y -> color;
+
+  if (p -> left == t -> nil) {
+    x = p -> right;
+    trans_plant(t, p, p -> right);
+  }
+  else if (p -> right == t -> nil) {
+    x = p -> left;
+    trans_plant(t, p, p -> left);
+  }
+  else {
+    y = p -> right;
+    while(y -> left != t -> nil){
+      y = y -> left;
+    }
+    org_color = y -> color;
+    x = y -> right;
+
+    if (y -> parent == p) {
+      x -> parent = y;
+    } 
+    else {
+      trans_plant(t, y, y -> right);
+      y -> right = p -> right;
+      y -> right -> parent = y;
+    }
+
+    trans_plant(t, p, y);
+    y -> left = p -> left;
+    y -> left -> parent = y;
+    y -> color = p -> color;
+  }
+
+  if (org_color == RBTREE_BLACK) {
+    delete_fixup(t, x);
+  }
+
+  free(p);
+
   return 0;
 }
-
-int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
-  // TODO: implement to_array
-  return 0;
-}
-
-// int main(){
-//   rbtree *t = new_rbtree();
-//   node_t *p = rbtree_insert(t, 20);
-
-//   node_t *q = rbtree_find(t, 20);
-
-//   return 0;
-// }
