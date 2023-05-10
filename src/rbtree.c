@@ -512,15 +512,3 @@ int rbtree_erase(rbtree *t, node_t *p) {
 
   return 0;
 }
-
-
-
-int main() {
-
-  rbtree *t = new_rbtree();
-
-  rbtree_insert(t, 10);
-  rbtree_insert(t, 98);
-  rbtree_insert(t, 44);
-
-}
